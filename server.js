@@ -52,9 +52,8 @@ async function connectDB() {
     }
   }
 }
-
+ 
 connectDB();
-
 // ---------- BASIC ROUTES ----------
 app.get('/', (req, res) => res.send("Application is listening"));
 
