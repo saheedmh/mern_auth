@@ -61,7 +61,16 @@ router.post('/signup', async (req, res) => {
  // login page
  router.post('/login', async (req, res)=>{
 
- 
+ return res.cookie('token', token, {
+    httpOnly: true,
+    secure: true,      // Must be true for Render
+    sameSite: 'none',  // Must be 'none' for Vercel -> Render
+    maxAge: 3600000 
+}).json({ 
+    status: true,      // <--- ADD THIS LINE if it's missing!
+    message: "login successful", 
+    user: { id: user._id, name: user.name } 
+});
     const {email, password} = req.body;
     try{
  const user = await User.findOne({email})
