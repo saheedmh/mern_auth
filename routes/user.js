@@ -4,8 +4,8 @@ import bcrypt from 'bcrypt'
 import {User} from   '../models/User.js'
 import  jwt   from 'jsonwebtoken';
 import nodemailer from 'nodemailer'
-
- router.post('/signup', async (req,res)=>{
+//sign page
+/** router.post('/signup', async (req,res)=>{
     const {name, email, password} = req.body;
     const  users = await User.findOne({email})
     if(users){
@@ -21,7 +21,43 @@ return res.json({message:"user already existed"})
     await newUser.save();
     return res.json({status:true, message:"record register"})
  })
+*/
+ /** */
+ // ✅ Correct Signup Logic
+router.post('/signup', async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        const existingUser = await User.findOne({ email });
+        
+        if (existingUser) {
+            return res.status(400).json({ message: "User already exists" });
+        }
 
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({
+            name,
+            email,
+            password: hashedPassword,
+        });
+
+        const savedUser = await newUser.save();
+
+        // Generate Token
+        const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        // Send Cookie + Response
+        return res.cookie('token', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 3600000 
+        }).json({ status: true, message: "Registered successfully" });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Error creating user" });
+    }
+});
  // login page
  router.post('/login', async (req, res)=>{
 
