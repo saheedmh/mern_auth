@@ -179,7 +179,7 @@ router.post('/reset-password/:token', async (req, res) => {
 
 
 
-
+/** 
 router.get("/dashboard", async (req, res) => {
   const authHeader = req.headers.authorization;
 
@@ -201,6 +201,34 @@ router.get("/dashboard", async (req, res) => {
   } catch (err) {
     console.error("Token error:", err.message);
     res.status(401).json({ message: "Invalid or expired token" });
+  }
+});
+*/
+router.get("/dashboard", async (req, res) => {
+  // 1. Read the token from the COOKIE (not the header)
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({ status: false, message: "No token provided" });
+  }
+
+  try {
+    // 2. Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // 3. Find user and send status: true
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ status: false, message: "User not found" });
+    }
+
+    // 4. Always include status: true so React knows it worked
+    res.json({ status: true, user });
+    
+  } catch (err) {
+    console.error("Token error:", err.message);
+    res.status(401).json({ status: false, message: "Invalid or expired token" });
   }
 });
 
