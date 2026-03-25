@@ -5,7 +5,7 @@ import {User} from   '../models/User.js'
 import  jwt   from 'jsonwebtoken';
 import nodemailer from 'nodemailer'
 //sign page
-/** router.post('/signup', async (req,res)=>{
+router.post('/signup', async (req,res)=>{
     const {name, email, password} = req.body;
     const  users = await User.findOne({email})
     if(users){
@@ -21,74 +21,43 @@ return res.json({message:"user already existed"})
     await newUser.save();
     return res.json({status:true, message:"record register"})
  })
-*/
+
  /** */
- // ✅ Correct Signup Logic
-router.post('/signup', async (req, res) => {
-    try {
-        const { name, email, password } = req.body;
-        const existingUser = await User.findOne({ email });
-        
-        if (existingUser) {
-            return res.status(400).json({ message: "User already exists" });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({
-            name,
-            email,
-            password: hashedPassword,
-        });
-
-        const savedUser = await newUser.save();
-
-        // Generate Token
-        const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-        // Send Cookie + Response
-        return res.cookie('token', token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            maxAge: 3600000 
-        }).json({ status: true, message: "Registered successfully" });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Error creating user" });
-    }
-});
+ 
  // login page
- router.post('/login', async (req, res)=>{
+ router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "user not found" });
 
- 
-    const {email, password} = req.body;
-    try{
- const user = await User.findOne({email})
- if(!user)
-    return res.status(400).json({message:"user not found"});
- 
-   const match = await bcrypt.compare(password, user.password)
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ message: "password is incorrect" });
 
+    const token = jwt.sign(
+      { id: user._id, name: user.name },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
-   if(!match){
-    return res.status(400).json({message: "password is incorrect"})
-   }
+    // ✅ ADD STATUS: TRUE and THE COOKIE
+    return res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,      // Required for Render (HTTPS)
+      sameSite: 'none',  // Required for cross-site (Vercel to Render)
+      maxAge: 3600000 
+    }).json({ 
+      status: true,      // 👈 Frontend checks this to navigate
+      message: "login successful", 
+      user: { id: user._id, name: user.name } 
+    });
 
-   //const token = JsonWebTokenError.sign({username: "user.name"}, process.env.KEY, {expireIn:'1hr'} )
-   //res.cookie('token', token, {httpOnly:true, maxAge:360000})
-   const token = jwt.sign({id: user._id, name: user.name},
-    process.env.JWT_SECRET,
-    {expiresIn: '1hr'}
-   );
-   return res.json({message: "login successful", 
-    token,
-    user: {id: user._id, name:user.name}});
-}  
-catch(err){
+  } catch (err) {
     console.error("Login error", err);
-    res.status(500).json({message:'Internal server error'})
-}})
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 /**router.post('/forgot-password', async (req, res) => {
 const {email} = req.body;
 try{
