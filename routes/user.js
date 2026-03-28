@@ -22,7 +22,7 @@ return res.json({message:"user already existed"})
     return res.json({status:true, message:"record register"})
  })
 
- /** */
+ 
  
  // login page
  router.post('/login', async (req, res) => {
